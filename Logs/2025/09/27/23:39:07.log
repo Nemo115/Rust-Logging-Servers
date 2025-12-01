@@ -1,0 +1,11 @@
+[00:00:00.025] (7fa56ddf36c0) INFO   CALLED COMMAND: lxc ["list"]
+[00:00:00.025] (7fa56ddf36c0) INFO   CONTAINER LIST: [{"IPV6": "", "IPV4": "", "STATE": "STOPPED", "TYPE": "CONTAINER", "SNAPSHOTS": "1", "NAME": "TEST-MongoDB-Ubuntu"}]
+[00:00:00.045] (7fa56ddf36c0) INFO   CALLED COMMAND: lxc ["storage", "list"]
+[00:00:00.045] (7fa56ddf36c0) INFO   OUTPUT: [{"NAME": "default", "USED BY": "3", "SOURCE": "/var/lib/lxd/disks/default.img", "STATE": "CREATED", "DRIVER": "btrfs", "": "", "DESCRIPTION": ""}]
+[00:00:00.065] (7fa56ddf36c0) INFO   CALLED COMMAND: lxc ["exec", "TEST-MongoDB-Ubuntu", "--", "ps", "aux"]
+[00:00:00.065] (7fa56ddf36c0) INFO   OUTPUT: []
+[00:00:00.094] (7fa56ddf36c0) INFO   CALLED COMMAND: lxc ["info", "TEST-MongoDB-Ubuntu"]
+[00:00:00.094] (7fa56ddf36c0) INFO   DATA: {"Name": "TEST-MongoDB-Ubuntu", "Last Used": "2025/07/11 17:05 AEST", "Type": "container", "Status": "STOPPED", "Architecture": "x86_64", "Created": "2025/07/11 17:04 AEST"}
+[00:00:00.094] (7fa56ddf36c0) INFO   OUTPUT: {"Name": "TEST-MongoDB-Ubuntu", "Last Used": "2025/07/11 17:05 AEST", "Type": "container", "Status": "STOPPED", "Architecture": "x86_64", "Created": "2025/07/11 17:04 AEST"}
+[00:00:00.114] (7fa56ddf36c0) INFO   CALLED COMMAND: lxc ["exec", "TEST-MongoDB-Ubuntu", "--", "df", "-h"]
+[00:00:00.114] (7fa56ddf36c0) INFO   OUTPUT: []

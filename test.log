@@ -1,0 +1,3 @@
+[00:00:00.055] (7f2003ea47c0) INFO   CALLED COMMAND: lxc ["list"]
+[00:00:00.055] (7f2003ea47c0) INFO   OUTPUT: [{"NAME": "TEST-MongoDB-Ubuntu", "SNAPSHOTS": "1", "IPV4": "", "STATE": "STOPPED", "TYPE": "CONTAINER", "IPV6": ""}]
+[00:00:00.055] (7f2003ea47c0) INFO   OUTPUT: [{"NAME": "TEST-MongoDB-Ubuntu", "SNAPSHOTS": "1", "IPV4": "", "STATE": "STOPPED", "TYPE": "CONTAINER", "IPV6": ""}]

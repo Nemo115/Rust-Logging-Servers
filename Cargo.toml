@@ -1,0 +1,25 @@
+[package]
+name = "privacy_lock"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.99"
+chrono = "0.4.41"
+log = "0.4.27"
+serde_json = "1.0.143"
+simple-logging = "2.0.2"
+tokio = { version = "1.47.1", features = ["full"] }
+tokio-util = "0.7.16"
+
+[lib]
+name = "lib_setup"
+path = "src/lib.rs"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/bin/client.rs"
