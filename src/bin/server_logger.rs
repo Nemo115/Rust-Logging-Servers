@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()>{
 // First thread does logging and sleeping
 async fn sleep_logger(running: Arc<Mutex<bool>>){
     let four_hours = time::Duration::from_secs(60*60*4);
-    let twenty_sec = time::Duration::from_secs(20);
+    //let twenty_sec = time::Duration::from_secs(20);
 
     loop {
         // Check if should run
@@ -42,7 +42,7 @@ async fn sleep_logger(running: Arc<Mutex<bool>>){
             let (fp, dt) = log_utils::log_system();
             let mut client = Client::connect("127.0.0.1", 5000).await.unwrap();
             client.send_file(fp, dt).await.unwrap();
-            time::sleep(twenty_sec).await;
+            time::sleep(four_hours).await;
         } else {
             println!("Paused");
         }
