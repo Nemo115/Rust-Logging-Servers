@@ -40,7 +40,7 @@ async fn sleep_logger(running: Arc<Mutex<bool>>){
         if should_run{
             // Log system and send logfile to central server
             let (fp, dt) = log_utils::log_system();
-            let mut client = Client::connect("192.168.68.90", 5000).await.unwrap();
+            let mut client = Client::connect("127.0.0.1", 5000).await.unwrap();
             client.send_file(fp, dt).await.unwrap();
             time::sleep(twenty_sec).await;
         } else {

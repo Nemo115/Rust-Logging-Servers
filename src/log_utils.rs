@@ -75,18 +75,25 @@ fn del_dir(dir: &str, time_cutoff: u32) {
     }
 }
 
-// This some messy code
+// Log rotation function for deleting old logs
 pub fn del_old_logs(today: &DateTime, threshold: u32) {
     let cur_year: u32 = today.year.parse().unwrap();
     let cur_month: u32 = today.month.parse().unwrap();
-    let month_cutoff = cur_month - threshold;
+    let mut month_cutoff: u32 = 0;
+
+    if cur_month > threshold {
+        month_cutoff = cur_month - threshold;
+    }
+    
     
     // Scan years first - delete any previous years
     del_dir(LOG_FOLDER, cur_year);
 
     // Now scan months and delete any months below the cutoff
-    let months_dir = LOG_FOLDER.to_owned() + &cur_year.to_string() + "/";
-    del_dir(&months_dir, month_cutoff);
+    if month_cutoff != 0 {
+        let months_dir = LOG_FOLDER.to_owned() + &cur_year.to_string() + "/";
+        del_dir(&months_dir, month_cutoff);
+    }
 }
 
 pub fn call_command(args: &[&str]) -> String {
