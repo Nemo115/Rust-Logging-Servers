@@ -1,4 +1,0 @@
-This is a text file for transferring over tcp
-:)
-Second testing :DDDD
-;)
