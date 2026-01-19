@@ -6,7 +6,7 @@ use tokio::io::{AsyncWriteExt, AsyncReadExt, BufReader};
 use tokio::sync::Mutex;
 use tokio::net::TcpStream;
 
-use crate::{log_utils, message_reader::MessageReader, datetime};
+use crate::{log_utils, message_reader::MessageReader, datetime, central_state};
 
 
 const CHUNK_SIZE: usize = 100_000;
@@ -78,7 +78,7 @@ impl Server {
     }
 
     // Listens to and receives files and metadata
-    pub async fn run_storing_server(&self) -> anyhow::Result<()>{
+    pub async fn run_storing_server(&self, state: central_state::CentralState) -> anyhow::Result<()>{
         let listener = tokio::net::TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
         println!("Server is running on {}:{}", self.host, self.port);
         loop {

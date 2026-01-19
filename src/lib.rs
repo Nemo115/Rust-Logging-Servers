@@ -6,3 +6,4 @@ pub mod message;
 pub mod client;
 pub mod file_info;
 pub mod datetime;
+pub mod central_state;
