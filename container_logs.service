@@ -1,9 +1,0 @@
-[Unit]
-Description=Run Logging Service
-
-[Service]
-ExecStart=/home/bumblebee/rust/script_testing/shell_script.sh
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
