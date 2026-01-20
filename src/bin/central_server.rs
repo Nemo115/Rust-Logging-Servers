@@ -16,7 +16,7 @@ pub async fn main() -> anyhow::Result<()>{
     // Establish TCP Server
     let running = Arc::new(Mutex::new(true));
     let server = Server::new("0.0.0.0", 5000); // original port is 8080, changed to 5000 for multiple hosts
-    server.run_storing_server(state).await?;
+    server.run_storing_server(state.clone()).await?;
     // Take in connections and file transfer sockets
     
     // Receive file and do log rotations
