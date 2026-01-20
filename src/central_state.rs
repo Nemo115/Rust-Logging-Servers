@@ -1,6 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use warp::Filter;
+use warp::http::StatusCode;
 
 #[derive(Clone)]
 pub struct CentralState {
@@ -34,14 +36,17 @@ pub async fn start_http_server(state: CentralState) {
         .or(health)
         .with(warp::cors().allow_any_origin());
 
-    println!("HTTP server listening on 127.0.0.1:3030");
+    //println!("HTTP server listening on 127.0.0.1:3030");
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
 
 // Handler for GET /logs
 async fn get_logs_handler(state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
-    let logs = state.logs.lock().unwrap();
-    Ok(warp::reply::json(&*logs))
+    let logs = state.logs.lock().await;
+    Ok(warp::reply::with_status(
+        warp::reply::json(&*logs),
+        StatusCode::OK,
+    ))
 }
 
 // Handler for POST /logs
@@ -54,13 +59,26 @@ async fn post_logs_handler(
         .unwrap_or("")
         .to_string();
     
-    let mut logs = state.logs.lock().unwrap();
+    if message.is_empty() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&serde_json::json!({
+                "status": "error",
+                "message": "Log message cannot be empty"
+            })),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    let mut logs = state.logs.lock().await;
     logs.push(format!("HTTP: {}", message));
     
-    Ok(warp::reply::json(&serde_json::json!({
-        "status": "ok",
-        "message": "Log added"
-    })))
+    Ok(warp::reply::with_status(
+        warp::reply::json(&serde_json::json!({
+            "status": "ok",
+            "message": "Log added"
+        })),
+        StatusCode::CREATED,
+    ))
 }
 
 // Helper to pass state to handlers
