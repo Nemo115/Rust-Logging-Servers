@@ -11,13 +11,11 @@ pub async fn main() -> anyhow::Result<()>{
     // Shared state between TCP and HTTP
     let state = CentralState{
         logs: Arc::new(Mutex::new(Vec::new())),
+        servers: Arc::new(Mutex::new(Vec::new())),
     };
     let tcp_state = state.clone();
     // Establish TCP Server
     let server = Server::new("0.0.0.0", 5000); // original port is 8080, changed to 5000 for multiple hosts
-    
-    println!("TCP Server listening on 0.0.0.0:5000");
-    println!("HTTP Server listening on 0.0.0.0:3030");
 
     // Run both servers concurrently
     tokio::select! {

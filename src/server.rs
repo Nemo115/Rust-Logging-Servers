@@ -27,7 +27,7 @@ impl Server {
     // Listens to and receives Message types
     pub async fn run_logging_server(&self, running: Arc<Mutex<bool>>) -> anyhow::Result<()> {
         let listener = tokio::net::TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
-        println!("Server is running on {}:{}", self.host, self.port);
+        println!("TCP Server is running on {}:{}", self.host, self.port);
         loop {
             let (mut socket, addr) = listener.accept().await?;
             println!("Connection received from {}", addr);
@@ -80,7 +80,7 @@ impl Server {
     // Listens to and receives files and metadata
     pub async fn run_storing_server(&self, state: central_state::CentralState) -> anyhow::Result<()>{
         let listener = tokio::net::TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
-        println!("Server is running on {}:{}", self.host, self.port);
+        println!("TCP Server is running on {}:{}", self.host, self.port);
         loop {
             let (mut socket, addr) = listener.accept().await?;
             println!("Connection received from {}", addr);

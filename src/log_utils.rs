@@ -123,6 +123,7 @@ fn lxc_command(args: &[&str]) -> String{
     call_command(&call)
 }
 
+// Get the hostname of the current machine -> Refactor for log storing folder path structure
 pub fn get_hostname() -> String {
     let mut call = vec!["hostname"];
     let mut hostname: String = call_command(&call);

@@ -8,16 +8,23 @@ use warp::http::StatusCode;
 pub struct CentralState {
     // Shared state between TCP and HTTP handlers
     pub logs: Arc<Mutex<Vec<String>>>,
+    pub servers: Arc<Mutex<Vec<String>>>,
 }
 
 pub async fn start_http_server(state: CentralState) {
     // Create routes
-    
+    println!("Starting HTTP server on 0.0.0.0:3030");
     // GET /logs - retrieve all logs
     let get_logs = warp::path("logs")
         .and(warp::get())
         .and(with_state(state.clone()))
         .and_then(get_logs_handler);
+
+    // GET /servers - retrieve all servers
+    let get_servers = warp::path("servers")
+        .and(warp::get())
+        .and(with_state(state.clone()))
+        .and_then(get_servers_handler);
     
     // POST /logs - add a log via HTTP
     let post_logs = warp::path("logs")
@@ -78,6 +85,15 @@ async fn post_logs_handler(
             "message": "Log added"
         })),
         StatusCode::CREATED,
+    ))
+}
+
+// Handler for GET /servers
+async fn get_servers_handler(state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
+    let servers = state.servers.lock().await;
+    Ok(warp::reply::with_status(
+        warp::reply::json(&*servers),
+        StatusCode::OK,
     ))
 }
 
