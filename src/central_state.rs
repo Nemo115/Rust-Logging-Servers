@@ -1,8 +1,10 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::path::PathBuf;
 
 use warp::Filter;
 use warp::http::StatusCode;
+use tokio::fs;
 
 #[derive(Clone)]
 pub struct CentralState {
@@ -48,12 +50,23 @@ pub async fn start_http_server(state: CentralState) {
 }
 
 // Handler for GET /logs
-async fn get_logs_handler(state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
-    let logs = state.logs.lock().await;
-    Ok(warp::reply::with_status(
-        warp::reply::json(&*logs),
-        StatusCode::OK,
-    ))
+async fn get_logs_handler(_state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
+    match read_log_files("Logs").await {
+        Ok(files) => {
+            Ok(warp::reply::with_status(
+                warp::reply::json(&files),
+                StatusCode::OK,
+            ))
+        }
+        Err(_) => {
+            Ok(warp::reply::with_status(
+                warp::reply::json(&serde_json::json!({
+                    "error": "Failed to read log files"
+                })),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        }
+    }
 }
 
 // Handler for POST /logs
@@ -100,4 +113,29 @@ async fn get_servers_handler(state: CentralState) -> Result<impl warp::Reply, wa
 // Helper to pass state to handlers
 fn with_state(state: CentralState) -> impl Filter<Extract = (CentralState,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || state.clone())
+}
+
+// Recursively read all log files from a directory
+async fn read_log_files(dir_path: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut files = Vec::new();
+    let mut dir_queue = vec![PathBuf::from(dir_path)];
+
+    while let Some(current_dir) = dir_queue.pop() {
+        if let Ok(mut entries) = fs::read_dir(&current_dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if path.is_file() {
+                    // Convert to string path relative to current directory
+                    if let Some(path_str) = path.to_str() {
+                        files.push(path_str.to_string());
+                    }
+                } else if path.is_dir() {
+                    dir_queue.push(path);
+                }
+            }
+        }
+    }
+
+    files.sort();
+    Ok(files)
 }
