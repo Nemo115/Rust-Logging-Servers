@@ -320,3 +320,22 @@ pub fn snapshot_management(container_name: &str){
     lxc_command(&["snapshot", container_name]);
     lxc_command(&["info", container_name]);
 }
+
+// lxc list -c n --format=json | jq '{total: length, running: [.[] | select(.status=="Running")] | length}'
+// Get number of running containers
+pub fn num_running_containers() -> (usize, usize) {
+    let containers = lxc_list();
+    let mut running_count = 0;
+    let mut total_count = 0;
+
+    for container in containers {
+        if let Some(state) = container.get("STATE") {
+            if state == "RUNNING" {
+                running_count += 1;
+            }
+            total_count += 1;
+        }
+    }
+
+    (running_count, total_count)
+}
