@@ -12,6 +12,7 @@ pub async fn main() -> anyhow::Result<()>{
     let state = CentralState{
         logs: Arc::new(Mutex::new(Vec::new())),
         servers: Arc::new(Mutex::new(Vec::new())),
+        running_containers: Arc::new(Mutex::new(Vec::new())),
     };
     let tcp_state = state.clone();
     // Establish TCP Server
@@ -22,6 +23,10 @@ pub async fn main() -> anyhow::Result<()>{
         result = server.run_storing_server(state.clone()) => result?,
         _ = start_http_server(state) => {},
     }
+
+    // Receive get request from client for number of running containers
+    // Send request to server for number of running containers
+    // Respond to client with number of running containers
 
     Ok(())
 }

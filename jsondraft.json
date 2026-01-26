@@ -1,0 +1,12 @@
+{
+    "servers": {
+        "server_1":{
+            "running_containers": 10,
+            "total_containers": 15
+        },
+        "server_2":{
+            "running_containers": 11,
+            "total_containers": 12
+        }
+    }
+}

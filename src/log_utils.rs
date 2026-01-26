@@ -37,9 +37,10 @@ pub fn log_system() -> (String, DateTime){
 pub fn new_log_file() -> (DateTime, String){
     let dt: DateTime = DateTime::now();
 
-    let dir_path = get_log_folder() + "/" + &dt.year + "/" + &dt.month + "/" + &dt.day;
-    let file_path = dir_path.clone() + "/" + &dt.time +".log";
-
+    let dir_path = get_log_folder() + &dt.year + "/" + &dt.month + "/" + &dt.day;
+    let file_path = dir_path.clone() + "/" + &get_hostname() + "||" + &dt.time +".log";
+    println!("file path: {}", file_path);
+    println!("hostname: {}", get_hostname());
     // Create directory
     match create_dir_all(dir_path) {
         Ok(_) => println!("Successfully created {}", file_path),
@@ -88,7 +89,6 @@ pub fn del_old_logs(today: &DateTime, threshold: u32) {
     
     // Scan years first - delete any previous years
     del_dir(&get_log_folder(), cur_year);
-
     // Now scan months and delete any months below the cutoff
     if month_cutoff != 0 {
         let months_dir = get_log_folder() + &cur_year.to_string() + "/";
@@ -125,14 +125,14 @@ fn lxc_command(args: &[&str]) -> String{
 
 // Get the hostname of the current machine -> Refactor for log storing folder path structure
 pub fn get_hostname() -> String {
-    let mut call = vec!["hostname"];
+    let call = vec!["hostname"];
     let mut hostname: String = call_command(&call);
     hostname.truncate(hostname.len() - 1);
     hostname
 }
 
 fn get_log_folder() -> String{
-    LOG_FOLDER.to_string() + &get_hostname() + "/"
+    LOG_FOLDER.to_string()
 }
 
 // read and extract output of ps -- aux 
@@ -322,8 +322,8 @@ pub fn snapshot_management(container_name: &str){
 }
 
 // lxc list -c n --format=json | jq '{total: length, running: [.[] | select(.status=="Running")] | length}'
-// Get number of running containers
-pub fn num_running_containers() -> (usize, usize) {
+// Get number of running containers -> (running, total)
+pub fn get_running_containers() -> (usize, usize) {
     let containers = lxc_list();
     let mut running_count = 0;
     let mut total_count = 0;

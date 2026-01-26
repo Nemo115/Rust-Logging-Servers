@@ -11,6 +11,7 @@ pub struct CentralState {
     // Shared state between TCP and HTTP handlers
     pub logs: Arc<Mutex<Vec<String>>>,
     pub servers: Arc<Mutex<Vec<String>>>,
+    pub running_containers: Arc<Mutex<Vec<String>>>,
 }
 
 pub async fn start_http_server(state: CentralState) {

@@ -6,6 +6,8 @@ use lib_setup::log_utils;
 use lib_setup::server::Server;
 use lib_setup::client::Client;
 
+/* Create a log file and send it to the central server */
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()>{
     // Mutex for starting and stopping logging
