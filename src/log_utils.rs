@@ -65,12 +65,24 @@ pub fn rotate_logs() {
 fn del_dir(dir: &str, time_cutoff: u32) {
     let paths = read_dir(dir).unwrap();
     for path in paths{
-        let cur_dir = path.unwrap().path().display().to_string();
-        let time: u32 = cur_dir.replace(dir, "").parse().unwrap();
-        if time < time_cutoff { // Remove the entire directory
-            match remove_dir_all(&cur_dir) {
-                Ok(_) => println!("Successfully deleted directory {}", cur_dir),
-                Err(e) => eprint!("Failed to delete directory {}: {}", cur_dir, e)
+        let entry = path.unwrap();
+        let cur_path = entry.path();
+        
+        // Only process directories, skip files
+        if !cur_path.is_dir() {
+            continue;
+        }
+        
+        let cur_dir = cur_path.display().to_string();
+        let time_str = cur_dir.replace(dir, "");
+        
+        // Only process if the directory name is numeric
+        if let Ok(time) = time_str.parse::<u32>() {
+            if time < time_cutoff { // Remove the entire directory
+                match remove_dir_all(&cur_dir) {
+                    Ok(_) => println!("Successfully deleted directory {}", cur_dir),
+                    Err(e) => eprint!("Failed to delete directory {}: {}", cur_dir, e)
+                }
             }
         }
     }
@@ -129,6 +141,31 @@ pub fn get_hostname() -> String {
     let mut hostname: String = call_command(&call);
     hostname.truncate(hostname.len() - 1);
     hostname
+}
+
+// Pass in log file received from central server
+pub fn store_server_name(filename: String){
+    let server_name = filename.split("||").next().unwrap_or("");
+    let servers_file = "Logs/servers.txt";
+    
+    // Check if the file exists and if the hostname is already in it
+    if let Ok(content) = std::fs::read_to_string(servers_file) {
+        if content.lines().any(|line| line == server_name) {
+            log::info!("Server {} already in file", server_name);
+            return;
+        }
+        // Append to existing file
+        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(servers_file) {
+            use std::io::Write;
+            let _ = writeln!(file, "{}", server_name);
+            log::info!("Added server {} to file", server_name);
+        }
+    } else {
+        // Create new file with the server name
+        let _ = std::fs::write(servers_file, format!("{}\n", server_name));
+        log::info!("Created servers file with {}", server_name);
+    }
+
 }
 
 fn get_log_folder() -> String{

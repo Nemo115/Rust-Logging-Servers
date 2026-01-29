@@ -42,6 +42,7 @@ pub async fn start_http_server(state: CentralState) {
     
     // Combine routes
     let routes = get_logs
+        .or(get_servers)
         .or(post_logs)
         .or(health)
         .with(warp::cors().allow_any_origin());
@@ -103,10 +104,16 @@ async fn post_logs_handler(
 }
 
 // Handler for GET /servers
-async fn get_servers_handler(state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
-    let servers = state.servers.lock().await;
+async fn get_servers_handler(_state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
+    let servers_file = "Logs/servers.txt";
+    
+    let servers = match std::fs::read_to_string(servers_file) {
+        Ok(content) => content.lines().map(|line| line.to_string()).collect::<Vec<String>>(),
+        Err(_) => Vec::new(),
+    };
+    
     Ok(warp::reply::with_status(
-        warp::reply::json(&*servers),
+        warp::reply::json(&servers),
         StatusCode::OK,
     ))
 }
@@ -126,9 +133,12 @@ async fn read_log_files(dir_path: &str) -> Result<Vec<String>, Box<dyn std::erro
             while let Ok(Some(entry)) = entries.next_entry().await {
                 let path = entry.path();
                 if path.is_file() {
-                    // Convert to string path relative to current directory
-                    if let Some(path_str) = path.to_str() {
-                        files.push(path_str.to_string());
+                    // Only include .log files, skip other files like servers.txt
+                    if path.extension().and_then(|ext| ext.to_str()) == Some("log") {
+                        // Convert to string path relative to current directory
+                        if let Some(path_str) = path.to_str() {
+                            files.push(path_str.to_string());
+                        }
                     }
                 } else if path.is_dir() {
                     dir_queue.push(path);

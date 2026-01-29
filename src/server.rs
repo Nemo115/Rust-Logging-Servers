@@ -119,6 +119,9 @@ impl Server {
         reader.read_exact(&mut name_buf).await?;
         let filename = String::from_utf8(name_buf).unwrap();
         
+        // Store server name
+        log_utils::store_server_name(filename.clone());
+
         // --> Prepare output file path <--
         // Read date time of the file
         println!("filename = {}", filename);
