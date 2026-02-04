@@ -119,9 +119,6 @@ impl Server {
         reader.read_exact(&mut name_buf).await?;
         let filename = String::from_utf8(name_buf).unwrap();
         
-        // Store server name
-        log_utils::store_server_name(filename.clone());
-
         // --> Prepare output file path <--
         // Read date time of the file
         println!("filename = {}", filename);
@@ -143,7 +140,7 @@ impl Server {
         if !out_path.exists() {
             fs::create_dir_all(&out_path).await?;
         }
-        out_path.push(filename);
+        out_path.push(filename.clone());
 
         // Create file
         let mut out_file = File::create(&out_path).await?;
@@ -161,6 +158,10 @@ impl Server {
         }
         out_file.flush().await?;
         //println!("Received and saved {} bytes to {:?}", written, out_path);
+        
+        // Store server data to JSON file
+        log_utils::store_server_name(filename.clone(), out_path.to_string_lossy().to_string());
+        
         Ok(())
     }
 }

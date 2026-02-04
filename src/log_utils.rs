@@ -21,6 +21,7 @@ pub fn log_system() -> (String, DateTime){
     let container_list = lxc_list();
     log::info!("CONTAINER LIST: {:?}", container_list);
     log::info!("OUTPUT: {:?}", storage_pool_status());
+    log::info!("Running Containers: {:?}", get_running_containers());
 
     // Log for each container
     for container in container_list {
@@ -144,28 +145,63 @@ pub fn get_hostname() -> String {
 }
 
 // Pass in log file received from central server
-pub fn store_server_name(filename: String){
+// Reads the log file to extract running containers count and stores data in JSON
+pub fn store_server_name(filename: String, log_file_path: String) {
     let server_name = filename.split("||").next().unwrap_or("");
-    let servers_file = "Logs/servers.txt";
     
-    // Check if the file exists and if the hostname is already in it
-    if let Ok(content) = std::fs::read_to_string(servers_file) {
-        if content.lines().any(|line| line == server_name) {
-            log::info!("Server {} already in file", server_name);
-            return;
+    // Read the log file to extract running containers info
+    if let Ok(content) = std::fs::read_to_string(&log_file_path) {
+        let mut running_containers = 0;
+        let mut total_containers = 0;
+        
+        // Parse the log file for running containers info
+        for line in content.lines() {
+            if line.contains("Running Containers:") {
+                // Parse "(running, total)" format
+                if let Some(start) = line.find('(') {
+                    if let Some(end) = line.find(')') {
+                        let tuple_str = &line[start + 1..end];
+                        let parts: Vec<&str> = tuple_str.split(',').collect();
+                        if parts.len() == 2 {
+                            running_containers = parts[0].trim().parse().unwrap_or(0);
+                            total_containers = parts[1].trim().parse().unwrap_or(0);
+                        }
+                    }
+                }
+                break; // Found the line, no need to continue
+            }
         }
-        // Append to existing file
-        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(servers_file) {
-            use std::io::Write;
-            let _ = writeln!(file, "{}", server_name);
-            log::info!("Added server {} to file", server_name);
-        }
+        
+        // Store to JSON file
+        store_server_data_to_json(server_name, running_containers, total_containers);
     } else {
-        // Create new file with the server name
-        let _ = std::fs::write(servers_file, format!("{}\n", server_name));
-        log::info!("Created servers file with {}", server_name);
+        log::error!("Failed to read log file: {}", log_file_path);
     }
+}
 
+// Helper function to store server data to JSON file
+fn store_server_data_to_json(server_name: &str, running: usize, total: usize) {
+    let json_file = "Logs/servers.json";
+    let mut data = serde_json::json!({});
+    
+    // Read existing JSON if it exists
+    if let Ok(content) = std::fs::read_to_string(json_file) {
+        data = serde_json::from_str(&content).unwrap_or(serde_json::json!({}));
+    }
+    
+    // Update or insert server data
+    data[server_name] = serde_json::json!({
+        "running_containers": running,
+        "total_containers": total
+    });
+    
+    // Write to file
+    if let Ok(json_str) = serde_json::to_string_pretty(&data) {
+        let _ = std::fs::write(json_file, json_str);
+        log::info!("Updated server data for {} in {}", server_name, json_file);
+    } else {
+        log::error!("Failed to serialize server data for {}", server_name);
+    }
 }
 
 fn get_log_folder() -> String{
