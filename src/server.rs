@@ -160,7 +160,8 @@ impl Server {
         //println!("Received and saved {} bytes to {:?}", written, out_path);
         
         // Store server data to JSON file
-        log_utils::store_server_name(filename.clone(), out_path.to_string_lossy().to_string());
+        println!("filename: {:?}, out_path: {:?}", filename, out_path);
+        log_utils::update_server_data(out_path.to_string_lossy().to_string());
         
         Ok(())
     }

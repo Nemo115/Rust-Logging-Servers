@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-use std::{io::Read, process::Command};
 use chrono;
 use log::LevelFilter;
+use std::collections::HashMap;
 use std::fs::create_dir_all;
-use std::fs::remove_dir_all;
 use std::fs::read_dir;
+use std::fs::remove_dir_all;
+use std::{io::Read, process::Command};
 
 use crate::datetime::DateTime;
 
@@ -12,16 +12,16 @@ const LOG_FOLDER: &str = "Logs/";
 const ROTATION_MONTHS: u32 = 2;
 
 // Logs whole lxd system, returns log file path
-pub fn log_system() -> (String, DateTime){
+pub fn log_system() -> (String, DateTime) {
     // Create and rotate log files
     let (cur_time, fp) = new_log_file(); // Create new log file and pass on the current date time
     del_old_logs(&cur_time, ROTATION_MONTHS); // Rotate and delete past log files
-    
+
     // Get list of containers
     let container_list = lxc_list();
     log::info!("CONTAINER LIST: {:?}", container_list);
     log::info!("OUTPUT: {:?}", storage_pool_status());
-    log::info!("Running Containers: {:?}", get_running_containers());
+    log::info!("RUNNING CONTAINERS: {:?}", get_running_containers());
 
     // Log for each container
     for container in container_list {
@@ -35,19 +35,19 @@ pub fn log_system() -> (String, DateTime){
 }
 
 // Create new log file in directory for the current time
-pub fn new_log_file() -> (DateTime, String){
+pub fn new_log_file() -> (DateTime, String) {
     let dt: DateTime = DateTime::now();
 
     let dir_path = get_log_folder() + &dt.year + "/" + &dt.month + "/" + &dt.day;
-    let file_path = dir_path.clone() + "/" + &get_hostname() + "||" + &dt.time +".log";
+    let file_path = dir_path.clone() + "/" + &get_hostname() + "||" + &dt.time + ".log";
     println!("file path: {}", file_path);
     println!("hostname: {}", get_hostname());
     // Create directory
     match create_dir_all(dir_path) {
         Ok(_) => println!("Successfully created {}", file_path),
-        Err(e) => eprint!("Failed to create directory: {}", e)
+        Err(e) => eprint!("Failed to create directory: {}", e),
     }
-    simple_logging::log_to_file(file_path.clone(), LevelFilter::Info).unwrap(); 
+    simple_logging::log_to_file(file_path.clone(), LevelFilter::Info).unwrap();
 
     (dt, file_path)
 }
@@ -65,24 +65,25 @@ pub fn rotate_logs() {
 
 fn del_dir(dir: &str, time_cutoff: u32) {
     let paths = read_dir(dir).unwrap();
-    for path in paths{
+    for path in paths {
         let entry = path.unwrap();
         let cur_path = entry.path();
-        
+
         // Only process directories, skip files
         if !cur_path.is_dir() {
             continue;
         }
-        
+
         let cur_dir = cur_path.display().to_string();
         let time_str = cur_dir.replace(dir, "");
-        
+
         // Only process if the directory name is numeric
         if let Ok(time) = time_str.parse::<u32>() {
-            if time < time_cutoff { // Remove the entire directory
+            if time < time_cutoff {
+                // Remove the entire directory
                 match remove_dir_all(&cur_dir) {
                     Ok(_) => println!("Successfully deleted directory {}", cur_dir),
-                    Err(e) => eprint!("Failed to delete directory {}: {}", cur_dir, e)
+                    Err(e) => eprint!("Failed to delete directory {}: {}", cur_dir, e),
                 }
             }
         }
@@ -98,8 +99,7 @@ pub fn del_old_logs(today: &DateTime, threshold: u32) {
     if cur_month > threshold {
         month_cutoff = cur_month - threshold;
     }
-    
-    
+
     // Scan years first - delete any previous years
     del_dir(&get_log_folder(), cur_year);
     // Now scan months and delete any months below the cutoff
@@ -120,14 +120,17 @@ pub fn call_command(args: &[&str]) -> String {
     let mut call_output = cmd.spawn().unwrap(); // output handle
     _ = call_output.wait();
     let mut output_buffer = String::new();
-    _ = call_output.stdout.unwrap().read_to_string(&mut output_buffer);
+    _ = call_output
+        .stdout
+        .unwrap()
+        .read_to_string(&mut output_buffer);
 
     output_buffer
 }
 
 // Helper function for lxd commands
 // parameters: lxc [list of strings]
-fn lxc_command(args: &[&str]) -> String{
+fn lxc_command(args: &[&str]) -> String {
     let mut call = vec!["lxc"];
     call.extend_from_slice(args);
 
@@ -146,21 +149,26 @@ pub fn get_hostname() -> String {
 
 // Pass in log file received from central server
 // Reads the log file to extract running containers count and stores data in JSON
-pub fn store_server_name(filename: String, log_file_path: String) {
-    let server_name = filename.split("||").next().unwrap_or("");
-    
+pub fn update_server_data(log_file_path: String) {
+    let file_name = &log_file_path.split("||").next().unwrap_or("");
+    let server_name = file_name.split('/').last().unwrap_or("");
+
     // Read the log file to extract running containers info
     if let Ok(content) = std::fs::read_to_string(&log_file_path) {
         let mut running_containers = 0;
         let mut total_containers = 0;
-        
+
         // Parse the log file for running containers info
         for line in content.lines() {
-            if line.contains("Running Containers:") {
-                // Parse "(running, total)" format
-                if let Some(start) = line.find('(') {
-                    if let Some(end) = line.find(')') {
-                        let tuple_str = &line[start + 1..end];
+            if let Some(pos) = line.find("RUNNING CONTAINERS:") {
+                // Parse "(running, total)" format that appears after the marker
+                println!("Reached here, line: {}", line);
+                // Find the '(' that comes after the marker position (avoid earlier parentheses)
+                if let Some(paren_start_rel) = line[pos..].find('(') {
+                    let paren_start = pos + paren_start_rel;
+                    if let Some(paren_end_rel) = line[paren_start..].find(')') {
+                        let paren_end = paren_start + paren_end_rel;
+                        let tuple_str = &line[paren_start + 1..paren_end];
                         let parts: Vec<&str> = tuple_str.split(',').collect();
                         if parts.len() == 2 {
                             running_containers = parts[0].trim().parse().unwrap_or(0);
@@ -171,7 +179,7 @@ pub fn store_server_name(filename: String, log_file_path: String) {
                 break; // Found the line, no need to continue
             }
         }
-        
+
         // Store to JSON file
         store_server_data_to_json(server_name, running_containers, total_containers);
     } else {
@@ -183,18 +191,18 @@ pub fn store_server_name(filename: String, log_file_path: String) {
 fn store_server_data_to_json(server_name: &str, running: usize, total: usize) {
     let json_file = "Logs/servers.json";
     let mut data = serde_json::json!({});
-    
+
     // Read existing JSON if it exists
     if let Ok(content) = std::fs::read_to_string(json_file) {
         data = serde_json::from_str(&content).unwrap_or(serde_json::json!({}));
     }
-    
+
     // Update or insert server data
     data[server_name] = serde_json::json!({
         "running_containers": running,
         "total_containers": total
     });
-    
+
     // Write to file
     if let Ok(json_str) = serde_json::to_string_pretty(&data) {
         let _ = std::fs::write(json_file, json_str);
@@ -204,16 +212,18 @@ fn store_server_data_to_json(server_name: &str, running: usize, total: usize) {
     }
 }
 
-fn get_log_folder() -> String{
+fn get_log_folder() -> String {
     LOG_FOLDER.to_string()
 }
 
-// read and extract output of ps -- aux 
+// read and extract output of ps -- aux
 fn parse_ps_aux(output: &str) -> Vec<HashMap<String, String>> {
     let mut processes = Vec::new();
     let mut lines = output.lines();
 
-    let headers = ["USER", "PID", "%CPU", "%MEM", "VSZ", "RSS", "TTY", "STAT", "START", "TIME"];
+    let headers = [
+        "USER", "PID", "%CPU", "%MEM", "VSZ", "RSS", "TTY", "STAT", "START", "TIME",
+    ];
 
     // Skip the header line (if it exists)
     if output.starts_with("USER") {
@@ -236,7 +246,7 @@ fn parse_ps_aux(output: &str) -> Vec<HashMap<String, String>> {
 
 // For reading terminal outputs that are in the form of tables
 // Cannot be used for columns with spaces within values (refer to other helper functions or custom code)
-fn parse_tabular_data_table(output: &str) -> Vec<HashMap<String, String>>{
+fn parse_tabular_data_table(output: &str) -> Vec<HashMap<String, String>> {
     let mut rows = Vec::new();
     let lines = output.lines();
 
@@ -246,25 +256,25 @@ fn parse_tabular_data_table(output: &str) -> Vec<HashMap<String, String>>{
 
     for line in lines {
         let mut fields: Vec<&str> = line.split_whitespace().collect();
-        if count == 0 { // Define the headers as the key values
+        if count == 0 {
+            // Define the headers as the key values
             headers.append(&mut fields);
-        }
-        else {
+        } else {
             let mut row = HashMap::new();
             for i in 0..fields.len() {
                 row.insert(headers[i].to_string(), fields[i].to_string());
             }
             rows.push(row);
         }
-        count+=1;
+        count += 1;
     }
     rows
 }
 
-fn parse_box_data_table(output: &str) -> Vec<HashMap<String, String>>{
+fn parse_box_data_table(output: &str) -> Vec<HashMap<String, String>> {
     const SKIP_ROWS: usize = 1;
 
-    let mut headers  = Vec::new();
+    let mut headers = Vec::new();
     let mut data_rows: Vec<HashMap<String, String>> = Vec::new(); // Vec of Hashmaps - [{"Name": XXX, "State": XXX, "IPV4": XXX}, {"Name": XXX, "State": XXX, "IPV4": XXX}, ...]
     let mut count = 0;
 
@@ -273,17 +283,17 @@ fn parse_box_data_table(output: &str) -> Vec<HashMap<String, String>>{
             continue;
         }
         let mut columns: Vec<&str> = line.split('|').map(|s| s.trim()).collect();
-        
-        if count == 0 { // collect the headers
+
+        if count == 0 {
+            // collect the headers
             headers.append(&mut columns);
-        }
-        else{
+        } else {
             let mut row: HashMap<String, String> = HashMap::new();
-        
-            for (idx, header) in headers.iter().enumerate(){
+
+            for (idx, header) in headers.iter().enumerate() {
                 row.insert(header.to_string(), columns[idx].to_string());
             }
-            
+
             data_rows.push(row);
         }
         count += 1;
@@ -292,7 +302,7 @@ fn parse_box_data_table(output: &str) -> Vec<HashMap<String, String>>{
 }
 
 // Container status check
-pub fn lxc_list() -> Vec<HashMap<String, String>>{
+pub fn lxc_list() -> Vec<HashMap<String, String>> {
     let output: String = lxc_command(&["list"]);
 
     // String Manipulation
@@ -300,18 +310,18 @@ pub fn lxc_list() -> Vec<HashMap<String, String>>{
     const SKIP_ROWS: usize = 2;
     const SKIP_ITEM: usize = 1;
 
-    let headers  = ["NAME", "STATE", "IPV4", "IPV6", "TYPE", "SNAPSHOTS"];
+    let headers = ["NAME", "STATE", "IPV4", "IPV6", "TYPE", "SNAPSHOTS"];
     let mut data_rows: Vec<HashMap<String, String>> = Vec::new(); // Vec of Hashmaps - [{"Name": XXX, "State": XXX, "IPV4": XXX}, {"Name": XXX, "State": XXX, "IPV4": XXX}, ...]
 
     for line in output.lines().skip(SKIP_ROWS) {
-        if line.starts_with('|'){
+        if line.starts_with('|') {
             let columns: Vec<&str> = line.split('|').map(|s| s.trim()).collect();
             let mut row: HashMap<String, String> = HashMap::new();
-            
-            for (idx, header) in headers.iter().enumerate(){
+
+            for (idx, header) in headers.iter().enumerate() {
                 row.insert(header.to_string(), columns[idx + SKIP_ITEM].to_string());
             }
-            
+
             data_rows.push(row);
         }
     }
@@ -319,7 +329,7 @@ pub fn lxc_list() -> Vec<HashMap<String, String>>{
 }
 
 // Resource Usage
-pub fn lxc_info(container_name: &str) -> HashMap<String, String>{
+pub fn lxc_info(container_name: &str) -> HashMap<String, String> {
     let output = lxc_command(&["info", container_name]);
 
     let mut data = HashMap::new();
@@ -332,7 +342,7 @@ pub fn lxc_info(container_name: &str) -> HashMap<String, String>{
             data.insert(key, value);
         }
     }
-    
+
     log::info!("DATA: {:?}", data);
 
     // If container is running extract more data
@@ -343,20 +353,19 @@ pub fn lxc_info(container_name: &str) -> HashMap<String, String>{
 }
 
 // Container Process Health
-pub fn lxc_ps_aux(container_name: &str) -> Vec<HashMap<String, String>>{
+pub fn lxc_ps_aux(container_name: &str) -> Vec<HashMap<String, String>> {
     let output = lxc_command(&["exec", container_name, "--", "ps", "aux"]);
     let processes: Vec<HashMap<String, String>> = parse_ps_aux(&output);
     processes
 }
 
 // Network Connectivity - investigate what this does
-pub fn network_connectivity(container_name: &str){
+pub fn network_connectivity(container_name: &str) {
     lxc_command(&["exec", container_name, "--", "ping", "-c", "3", "8.8.8.8"]);
-
 }
 
 // File System Integrity and Disk Space
-pub fn integrity_disk_space(container_name: &str) -> Vec<HashMap<String, String>>{
+pub fn integrity_disk_space(container_name: &str) -> Vec<HashMap<String, String>> {
     let output = lxc_command(&["exec", container_name, "--", "df", "-h"]);
     //lxc_command(&["exec", container_name, "--", "du", "-sh", "/var/log"]); // Check for specific directory
     let data = parse_tabular_data_table(&output);
@@ -364,32 +373,40 @@ pub fn integrity_disk_space(container_name: &str) -> Vec<HashMap<String, String>
 }
 
 // Log File Health
-pub fn log_file_health(container_name: &str){
-    let output = lxc_command(&["exec", container_name, "--", "tail", "-n", "100", "/var/log/syslog"]);
+pub fn log_file_health(container_name: &str) {
+    let output = lxc_command(&[
+        "exec",
+        container_name,
+        "--",
+        "tail",
+        "-n",
+        "100",
+        "/var/log/syslog",
+    ]);
     // Understand the data output
 }
 
 // LXD Storage Pool Status
-pub fn storage_pool_status() -> Vec<HashMap<String, String>>{
+pub fn storage_pool_status() -> Vec<HashMap<String, String>> {
     let output = lxc_command(&["storage", "list"]);
     let data = parse_box_data_table(&output);
     data
 }
 
 // Network Interface and DNS
-pub fn network_interface_dns(container_name: &str){
+pub fn network_interface_dns(container_name: &str) {
     lxc_command(&["exec", container_name, "--", "ip", "a"]);
     lxc_command(&["exec", container_name, "--", "cat", "/etc/resolv.conf"]);
     // ifconfig
 }
 
 // Backup Verification
-pub fn backup_verification(container_name: &str){
+pub fn backup_verification(container_name: &str) {
     lxc_command(&["exec", container_name, "backup.tar.gz"]);
 }
 
 // Snapshot Management
-pub fn snapshot_management(container_name: &str){
+pub fn snapshot_management(container_name: &str) {
     lxc_command(&["snapshot", container_name]);
     lxc_command(&["info", container_name]);
 }
