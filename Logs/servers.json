@@ -1,5 +1,6 @@
 {
   "sentinel-prime": {
+    "name": "sentinel-prime",
     "running_containers": 0,
     "total_containers": 1
   }

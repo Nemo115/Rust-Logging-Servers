@@ -199,6 +199,7 @@ fn store_server_data_to_json(server_name: &str, running: usize, total: usize) {
 
     // Update or insert server data
     data[server_name] = serde_json::json!({
+        "name": server_name,
         "running_containers": running,
         "total_containers": total
     });
