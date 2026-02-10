@@ -22,6 +22,7 @@ pub fn log_system() -> (String, DateTime) {
     log::info!("CONTAINER LIST: {:?}", container_list);
     log::info!("OUTPUT: {:?}", storage_pool_status());
     log::info!("RUNNING CONTAINERS: {:?}", get_running_containers());
+    log::info!("SYSTEM UPTIME: {:?}", get_uptime());
 
     // Log for each container
     for container in container_list {
@@ -147,6 +148,14 @@ pub fn get_hostname() -> String {
     hostname
 }
 
+// Get the system uptime/running time -> up 3 days, 17 hours, 37 minutes
+pub fn get_uptime() -> String {
+    let call = vec!["uptime", "-p"];
+    let mut uptime: String = call_command(&call);
+    uptime.truncate(uptime.len() - 1);
+    uptime
+}
+
 // Pass in log file received from central server
 // Reads the log file to extract running containers count and stores data in JSON
 pub fn update_server_data(log_file_path: String) {
@@ -179,16 +188,24 @@ pub fn update_server_data(log_file_path: String) {
                 break; // Found the line, no need to continue
             }
         }
+        // Parse uptime info
+        let mut uptime = String::new();
+        for line in content.lines() {
+            if let Some(pos) = line.find("SYSTEM UPTIME:") {
+                uptime = line[pos + "SYSTEM UPTIME:".len()..].trim().to_string();
+                break;
+            }
+        }
 
         // Store to JSON file
-        store_server_data_to_json(server_name, running_containers, total_containers);
+        store_server_data_to_json(server_name, running_containers, total_containers, uptime);
     } else {
         log::error!("Failed to read log file: {}", log_file_path);
     }
 }
 
 // Helper function to store server data to JSON file
-fn store_server_data_to_json(server_name: &str, running: usize, total: usize) {
+fn store_server_data_to_json(server_name: &str, running: usize, total: usize, uptime: String) {
     let json_file = "Logs/servers.json";
     let mut data = serde_json::json!({});
 
@@ -201,7 +218,8 @@ fn store_server_data_to_json(server_name: &str, running: usize, total: usize) {
     data[server_name] = serde_json::json!({
         "name": server_name,
         "running_containers": running,
-        "total_containers": total
+        "total_containers": total,
+        "uptime": uptime
     });
 
     // Write to file
