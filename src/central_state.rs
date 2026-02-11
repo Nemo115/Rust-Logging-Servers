@@ -103,7 +103,7 @@ async fn post_logs_handler(
     ))
 }
 
-// Handler for GET /servers
+// Handler for GET /servers -> returns json content of servers.json
 async fn get_servers_handler(_state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
     let servers_file = "Logs/servers.json";
     
