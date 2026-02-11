@@ -105,17 +105,25 @@ async fn post_logs_handler(
 
 // Handler for GET /servers
 async fn get_servers_handler(_state: CentralState) -> Result<impl warp::Reply, warp::Rejection> {
-    let servers_file = "Logs/servers.txt";
+    let servers_file = "Logs/servers.json";
     
-    let servers = match std::fs::read_to_string(servers_file) {
-        Ok(content) => content.lines().map(|line| line.to_string()).collect::<Vec<String>>(),
-        Err(_) => Vec::new(),
-    };
-    
-    Ok(warp::reply::with_status(
-        warp::reply::json(&servers),
-        StatusCode::OK,
-    ))
+    match fs::read_to_string(servers_file).await {
+        Ok(content) => {
+            let json: serde_json::Value = serde_json::from_str(&content).unwrap_or(serde_json::json!({}));
+            Ok(warp::reply::with_status(
+                warp::reply::json(&json),
+                StatusCode::OK,
+            ))
+        }
+        Err(_) => {
+            Ok(warp::reply::with_status(
+                warp::reply::json(&serde_json::json!({
+                    "error": "Failed to read servers.json"
+                })),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        }
+    }
 }
 
 // Helper to pass state to handlers
