@@ -148,11 +148,17 @@ pub fn get_hostname() -> String {
     hostname
 }
 
-// Get the system uptime/running time -> up 3 days, 17 hours, 37 minutes
+// Get the system uptime/running time in UTC time -> Refactor for log storing folder path structure
 pub fn get_uptime() -> String {
-    let call = vec!["uptime", "-p"];
+    let call = vec!["uptime", "-s"];
     let mut uptime: String = call_command(&call);
+    // Remove the newline character at the end of the uptime string
     uptime.truncate(uptime.len() - 1);
+    // Remove the quotes around the uptime string by deleting the first and last character if they are quotes
+    if uptime.starts_with('\"') && uptime.ends_with('\"') {
+        uptime = uptime[1..uptime.len() - 1].to_string();
+        println!("Uptime string had quotes, removed them: {}", uptime);
+    }
     uptime
 }
 
@@ -192,7 +198,7 @@ pub fn update_server_data(log_file_path: String) {
         let mut uptime = String::new();
         for line in content.lines() {
             if let Some(pos) = line.find("SYSTEM UPTIME:") {
-                uptime = line[pos + "SYSTEM UPTIME:".len()..].trim().to_string();
+                uptime = line[pos + "SYSTEM UPTIME:".len()..].trim().to_string().replace("\"", "");
                 break;
             }
         }
